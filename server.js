@@ -1,9 +1,13 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
 const studentRoutes = require("./routes/studentRoutes");
 
 const app = express();
 
+app.use(cors({
+  origin: "http://localhost:3000",
+}));
 app.use(express.json());
 
 // Debug middleware
