@@ -2,32 +2,23 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const studentRoutes = require("./routes/studentRoutes");
+const courseRoutes = require("./routes/courseRoutes");
+const enrollmentRoutes = require("./routes/enrollmentRoutes");
 
 const app = express();
 
-app.use(cors({
-  origin: "http://localhost:3000",
-}));
+app.use(cors({ origin: "http://localhost:3000" }));
 app.use(express.json());
 
-// Debug middleware
-app.use("/api/students", (req, res, next) => {
-  console.log("✅ Route HIT:", req.method, req.url);
-  next();
-}, studentRoutes);
+app.use("/api/students", studentRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
 
-// Test route
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
+app.get("/", (req, res) => res.send("StudentHub API is running..."));
 
-// MongoDB connection
 mongoose.connect("mongodb://127.0.0.1:27017/studentDB")
   .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log(err));
+  .catch((err) => console.log(err));
 
 const PORT = 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
