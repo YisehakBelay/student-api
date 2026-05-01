@@ -1,19 +1,17 @@
 const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema({
-  studentId: { type: String, unique: true, sparse: true },
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  age: { type: Number },
+  studentId: { type: String, unique: true, sparse: true, trim: true },
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  age: { type: Number, min: 0 },
   gradeLevel: { type: Number, enum: [9, 10, 11, 12], required: true },
 }, { timestamps: true });
 
-studentSchema.pre("save", async function (next) {
+studentSchema.pre("validate", function () {
   if (!this.studentId) {
-    const count = await mongoose.model("Student").countDocuments();
-    this.studentId = `STU${String(count + 1).padStart(4, "0")}`;
+    this.studentId = `STU${this._id.toString().slice(-10).toUpperCase()}`;
   }
-  next();
 });
 
 module.exports = mongoose.model("Student", studentSchema);

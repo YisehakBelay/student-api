@@ -1,13 +1,20 @@
 const express = require("express");
 const router = express.Router();
 const Enrollment = require("../models/Enrollment");
+const { requireObjectId } = require("../utils/routeHelpers");
 
 // GET enrollments (filterable by ?course=id or ?student=id)
 router.get("/", async (req, res) => {
   try {
     const filter = {};
-    if (req.query.course) filter.course = req.query.course;
-    if (req.query.student) filter.student = req.query.student;
+    if (req.query.course) {
+      if (!requireObjectId(res, req.query.course, "course id")) return;
+      filter.course = req.query.course;
+    }
+    if (req.query.student) {
+      if (!requireObjectId(res, req.query.student, "student id")) return;
+      filter.student = req.query.student;
+    }
     const enrollments = await Enrollment.find(filter)
       .populate("student", "name email studentId gradeLevel age")
       .populate("course", "name subject teacherName gradeLevel semester year period credits");
@@ -20,6 +27,8 @@ router.get("/", async (req, res) => {
 // POST enroll a student in a course
 router.post("/", async (req, res) => {
   try {
+    if (!requireObjectId(res, req.body.student, "student id")) return;
+    if (!requireObjectId(res, req.body.course, "course id")) return;
     const enrollment = new Enrollment({ student: req.body.student, course: req.body.course });
     const saved = await enrollment.save();
     const populated = await saved.populate([
@@ -36,12 +45,13 @@ router.post("/", async (req, res) => {
 // PUT submit or update a grade
 router.put("/:id/grade", async (req, res) => {
   try {
+    if (!requireObjectId(res, req.params.id, "enrollment id")) return;
     const { grade } = req.body;
     if (grade === undefined || grade === null) return res.status(400).json({ message: "Grade is required" });
     const updated = await Enrollment.findByIdAndUpdate(
       req.params.id,
       { grade: parseFloat(grade), gradeSubmitted: true, submittedAt: new Date() },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     )
       .populate("student", "name email studentId gradeLevel age")
       .populate("course", "name subject teacherName gradeLevel semester year period credits");
@@ -55,6 +65,7 @@ router.put("/:id/grade", async (req, res) => {
 // DELETE remove a student from a course
 router.delete("/:id", async (req, res) => {
   try {
+    if (!requireObjectId(res, req.params.id, "enrollment id")) return;
     const enrollment = await Enrollment.findByIdAndDelete(req.params.id);
     if (!enrollment) return res.status(404).json({ message: "Enrollment not found" });
     res.json({ message: "Enrollment removed" });

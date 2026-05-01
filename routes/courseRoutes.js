@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const Course = require("../models/Course");
 const Enrollment = require("../models/Enrollment");
+const Attendance = require("../models/Attendance");
+const { requireObjectId } = require("../utils/routeHelpers");
 
 // GET all courses with enrollment count
 router.get("/", async (req, res) => {
@@ -20,6 +22,7 @@ router.get("/", async (req, res) => {
 // GET single course
 router.get("/:id", async (req, res) => {
   try {
+    if (!requireObjectId(res, req.params.id, "course id")) return;
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json(course);
@@ -31,6 +34,7 @@ router.get("/:id", async (req, res) => {
 // GET enrollments for a course (with student info and grades)
 router.get("/:id/enrollments", async (req, res) => {
   try {
+    if (!requireObjectId(res, req.params.id, "course id")) return;
     const enrollments = await Enrollment.find({ course: req.params.id })
       .populate("student", "name email studentId gradeLevel age")
       .sort({ createdAt: 1 });
@@ -54,8 +58,9 @@ router.post("/", async (req, res) => {
 // PUT update course
 router.put("/:id", async (req, res) => {
   try {
+    if (!requireObjectId(res, req.params.id, "course id")) return;
     const updated = await Course.findByIdAndUpdate(
-      req.params.id, req.body, { new: true, runValidators: true }
+      req.params.id, req.body, { returnDocument: "after", runValidators: true }
     );
     if (!updated) return res.status(404).json({ message: "Course not found" });
     res.json(updated);
@@ -64,12 +69,14 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE course (cascades enrollments)
+// DELETE course (cascades related records)
 router.delete("/:id", async (req, res) => {
   try {
+    if (!requireObjectId(res, req.params.id, "course id")) return;
     const course = await Course.findByIdAndDelete(req.params.id);
     if (!course) return res.status(404).json({ message: "Course not found" });
     await Enrollment.deleteMany({ course: req.params.id });
+    await Attendance.deleteMany({ course: req.params.id });
     res.json({ message: "Course deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });
